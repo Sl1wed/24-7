@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RBX Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #18181f;
+      --bg4: #1f1f28;
+      --border: #2a2a38;
+      --border2: #3a3a4a;
+      --accent: #7c5cfc;
+      --accent2: #9d7ffe;
+      --accent-glow: rgba(124,92,252,0.25);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.15);
+      --yellow: #eab308;
+      --yellow-dim: rgba(234,179,8,0.15);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.15);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.15);
+      --text: #e8e8f0;
+      --text2: #9898b0;
+      --text3: #5a5a70;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; overflow-x: hidden; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+    /* ── LAYOUT ── */
+    .layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 56px 1fr; height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 24px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 10px; }
+    .topbar-logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .topbar-logo span { font-weight: 700; font-size: 15px; letter-spacing: 0.03em; color: var(--text); }
+    .topbar-logo span em { color: var(--accent2); font-style: normal; }
+    .topbar-stats { display: flex; gap: 20px; margin-left: auto; }
+    .stat-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--bg3); border: 1px solid var(--border);
+      padding: 5px 12px; border-radius: 99px;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+    }
+    .stat-pill .val { color: var(--text); font-weight: 600; }
+    .stat-pill .ind { width: 7px; height: 7px; border-radius: 50%; }
+    .ind-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .ind-purple { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      padding: 20px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      overflow-y: auto;
+    }
+    .sidebar-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 10px 4px; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      cursor: pointer; border: none; background: none;
+      color: var(--text2); font-size: 13px; font-weight: 500;
+      transition: all 0.15s; width: 100%; text-align: left;
+    }
+    .nav-btn:hover { background: var(--bg3); color: var(--text); }
+    .nav-btn.active { background: var(--accent-glow); color: var(--accent2); }
+    .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-btn .badge {
+      margin-left: auto; background: var(--accent); color: #fff;
+      font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px;
+    }
+
+    /* ── MAIN ── */
+    .main { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── SECTION HEADER ── */
+    .section-header { display: flex; align-items: center; gap: 12px; }
+    .section-title { font-size: 16px; font-weight: 700; }
+    .section-sub { font-size: 12px; color: var(--text3); }
+    .section-header .ml { margin-left: auto; }
+
+    /* ── BTN ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); box-shadow: 0 0 20px var(--accent-glow); }
+    .btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg4); color: var(--text); }
+    .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .btn-green:hover { background: rgba(34,197,94,0.25); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* ── ACCOUNT GRID ── */
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+
+    /* ── ACCOUNT CARD ── */
+    .acc-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .acc-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .acc-card:hover { border-color: var(--border2); box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+    .acc-card:hover::before { opacity: 1; }
+    .acc-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 24px var(--accent-glow); }
+    .acc-card.selected::before { opacity: 1; }
+    .acc-card.online-card { border-color: rgba(34,197,94,0.3); }
+    .acc-card.online-card::before { background: linear-gradient(90deg, var(--green), transparent); opacity: 1; }
+
+    .acc-top { display: flex; align-items: center; gap: 12px; }
+    .acc-avatar { position: relative; }
+    .acc-avatar img {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover; background: var(--bg3);
+    }
+    .acc-avatar .status-dot {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 11px; height: 11px; border-radius: 50%;
+      border: 2px solid var(--bg2);
+    }
+    .status-dot.s0 { background: var(--text3); }
+    .status-dot.s1 { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.s2 { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+    .status-dot.s3 { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+    .acc-info { flex: 1; min-width: 0; }
+    .acc-name { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acc-display { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .acc-status { font-size: 11px; margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600;
+    }
+    .sb-offline { background: rgba(90,90,112,0.2); color: var(--text3); }
+    .sb-online { background: var(--green-dim); color: var(--green); }
+    .sb-ingame { background: var(--blue-dim); color: var(--blue); }
+    .sb-studio { background: var(--yellow-dim); color: var(--yellow); }
+    .sb-managed { background: var(--accent-glow); color: var(--accent2); }
+
+    .acc-game { font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 5px; overflow: hidden; }
+    .acc-game span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .acc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── DETAIL PANEL ── */
+    .detail-panel {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .detail-top { display: flex; align-items: center; gap: 16px; }
+    .detail-avatar img { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--border); }
+    .detail-name { font-size: 20px; font-weight: 700; }
+    .detail-id { font-size: 11px; color: var(--text3); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+    .detail-badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+    .log-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+    .log-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 7px 10px; border-radius: var(--radius-sm);
+      background: var(--bg3); font-size: 12px;
+    }
+    .log-time { color: var(--text3); font-family: 'JetBrains Mono', monospace; font-size: 10px; white-space: nowrap; padding-top: 1px; }
+    .log-msg { color: var(--text2); flex: 1; }
+    .log-join .log-msg { color: var(--green); }
+    .log-leave .log-msg { color: var(--red); }
+    .log-warn .log-msg { color: var(--yellow); }
+    .log-error .log-msg { color: var(--red); }
+
+    .join-form { display: flex; gap: 8px; align-items: center; }
+    .join-form input {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 12px; border-radius: var(--radius-sm);
+      font-size: 13px; font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .join-form input:focus { border-color: var(--accent); }
+    .join-form input::placeholder { color: var(--text3); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; backdrop-filter: blur(4px);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: var(--radius); padding: 28px; width: 420px; max-width: 95vw;
+      display: flex; flex-direction: column; gap: 16px;
+      transform: translateY(12px); transition: transform 0.2s;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-sub { font-size: 12px; color: var(--text2); line-height: 1.6; }
+    .modal-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .modal-field input, .modal-field textarea {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: var(--radius-sm);
+      font-size: 13px; font-family: 'JetBrains Mono', monospace; outline: none;
+      resize: none;
+    }
+    .modal-field input:focus, .modal-field textarea:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal-error { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.3); color: var(--red); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; display: none; }
+    .modal-error.show { display: block; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; padding: 60px 20px; color: var(--text3); text-align: center;
+    }
+    .empty-state .icon { font-size: 48px; opacity: 0.4; }
+    .empty-state .title { font-size: 15px; font-weight: 600; color: var(--text2); }
+    .empty-state .sub { font-size: 12px; max-width: 260px; line-height: 1.6; }
+
+    /* ── TOAST ── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 200; }
+    .toast {
+      background: var(--bg3); border: 1px solid var(--border2);
+      padding: 10px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      animation: slideIn 0.2s ease;
+    }
+    .toast.success { border-color: rgba(34,197,94,0.4); color: var(--green); }
+    .toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); }
+
+    /* ── LOADING ── */
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── NO SELECTION ── */
+    .no-selection {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 40px; color: var(--text3); text-align: center;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="dot"></div>
+      <span>RBX<em>Manager</em></span>
+    </div>
+    <div class="topbar-stats">
+      <div class="stat-pill">
+        <span class="ind ind-purple"></span>
+        Total <span class="val" id="stat-total">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="ind ind-green"></span>
+        Online <span class="val" id="stat-online">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="ind" style="background:var(--blue);box-shadow:0 0 6px var(--blue)"></span>
+        In-Game <span class="val" id="stat-ingame">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="ind" style="background:var(--accent);box-shadow:0 0 6px var(--accent)"></span>
+        Managed <span class="val" id="stat-managed">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">Views</div>
+    <button class="nav-btn active" onclick="setView('accounts')">
+      <span class="icon">👥</span> Accounts
+      <span class="badge" id="nav-badge">0</span>
+    </button>
+    <button class="nav-btn" onclick="setView('activity')">
+      <span class="icon">📡</span> Activity
+    </button>
+    <div class="sidebar-label" style="margin-top:12px">Actions</div>
+    <button class="nav-btn" onclick="openAddModal()">
+      <span class="icon">➕</span> Add Account
+    </button>
+    <button class="nav-btn" onclick="refreshAll()">
+      <span class="icon">🔄</span> Refresh All
+    </button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content">
+    <!-- injected by JS -->
+  </div>
+</div>
+
+<!-- ADD ACCOUNT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">Add Account</div>
+    <div class="modal-sub">Paste the <code style="color:var(--accent2);background:var(--bg3);padding:1px 5px;border-radius:4px">.ROBLOSECURITY</code> cookie for the account you want to add. It's found in browser DevTools → Application → Cookies → roblox.com.</div>
+    <div class="modal-field">
+      <label>Security Cookie</label>
+      <textarea id="cookie-input" rows="4" placeholder="_|WARNING:-DO-NOT-SHARE..."></textarea>
+    </div>
+    <div class="modal-error" id="add-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" id="add-btn" onclick="addAccount()">
+        <span id="add-btn-text">Add Account</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- JOIN MODAL -->
+<div class="modal-overlay" id="join-modal">
+  <div class="modal">
+    <div class="modal-title">Join Game</div>
+    <div class="modal-sub">Enter the Roblox Place ID. You can find this in the game's URL: roblox.com/games/<code style="color:var(--accent2)">PLACEID</code>/...</div>
+    <div class="modal-field">
+      <label>Place ID</label>
+      <input type="number" id="placeid-input" placeholder="e.g. 920587237"/>
+    </div>
+    <div class="modal-error" id="join-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeJoinModal()">Cancel</button>
+      <button class="btn btn-primary" id="join-btn" onclick="confirmJoin()">Join Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '';
+let accounts = [];
+let selectedId = null;
+let joinTargetId = null;
+let currentView = 'accounts';
+let refreshTimer = null;
+
+// ── INIT ──
+async function init() {
+  await fetchAccounts();
+  startAutoRefresh();
+}
+
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(fetchAccounts, 30000);
+}
+
+// ── FETCH ──
+async function fetchAccounts() {
+  try {
+    const res = await fetch(`${API}/api/accounts`);
+    const data = await res.json();
+    accounts = data.accounts || [];
+    updateStats();
+    renderView();
+  } catch {
+    toast('Failed to fetch accounts', 'error');
+  }
+}
+
+async function refreshAll() {
+  toast('Refreshing all accounts…');
+  try {
+    const res = await fetch(`${API}/api/accounts/refresh`, { method: 'POST' });
+    const data = await res.json();
+    accounts = data.accounts || [];
+    updateStats();
+    renderView();
+    toast('Refreshed', 'success');
+  } catch {
+    toast('Refresh failed', 'error');
+  }
+}
+
+// ── STATS ──
+function updateStats() {
+  const total = accounts.length;
+  const online = accounts.filter(a => a.status > 0).length;
+  const ingame = accounts.filter(a => a.status === 2).length;
+  const managed = accounts.filter(a => a.managed).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-online').textContent = online;
+  document.getElementById('stat-ingame').textContent = ingame;
+  document.getElementById('stat-managed').textContent = managed;
+  document.getElementById('nav-badge').textContent = total;
+}
+
+// ── VIEW ──
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.closest('.nav-btn').classList.add('active');
+  renderView();
+}
+
+function renderView() {
+  if (currentView === 'accounts') renderAccounts();
+  else if (currentView === 'activity') renderActivity();
+}
+
+// ── ACCOUNTS VIEW ──
+function renderAccounts() {
+  const main = document.getElementById('main-content');
+  if (accounts.length === 0) {
+    main.innerHTML = `
+      <div class="section-header">
+        <span class="section-title">Accounts</span>
+        <button class="btn btn-primary ml" onclick="openAddModal()">➕ Add Account</button>
+      </div>
+      <div class="empty-state">
+        <div class="icon">👤</div>
+        <div class="title">No accounts yet</div>
+        <div class="sub">Add your first account using the button above. You'll need the .ROBLOSECURITY cookie.</div>
+      </div>`;
+    return;
+  }
+
+  const selected = accounts.find(a => a.id === selectedId);
+
+  main.innerHTML = `
+    <div class="section-header">
+      <span class="section-title">Accounts</span>
+      <span class="section-sub">${accounts.length} / 20</span>
+      <button class="btn btn-primary ml" onclick="openAddModal()">➕ Add Account</button>
+    </div>
+    <div class="accounts-grid" id="accounts-grid"></div>
+    <div id="detail-area"></div>`;
+
+  const grid = document.getElementById('accounts-grid');
+  grid.innerHTML = accounts.map(acc => accountCard(acc)).join('');
+
+  const detail = document.getElementById('detail-area');
+  if (selected) {
+    detail.innerHTML = detailPanel(selected);
+    loadLogs(selected.id);
+  }
+}
+
+function accountCard(acc) {
+  const statusClass = ['s0','s1','s2','s3'][acc.status] || 's0';
+  const isSelected = acc.id === selectedId;
+  const isOnline = acc.status > 0;
+  const statusLabel = ['Offline','Online','In-Game','In Studio'][acc.status] || 'Unknown';
+  const badgeClass = ['sb-offline','sb-online','sb-ingame','sb-studio'][acc.status] || 'sb-offline';
+  const avatar = acc.avatar || `https://www.roblox.com/headshot-thumbnail/image?userId=${acc.id}&width=150&height=150&format=png`;
+
+  return `<div class="acc-card${isSelected ? ' selected' : ''}${isOnline ? ' online-card' : ''}" onclick="selectAccount(${acc.id})">
+    <div class="acc-top">
+      <div class="acc-avatar">
+        <img src="${avatar}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2244%22 height=%2244%22><rect width=%2244%22 height=%2244%22 fill=%22%2318181f%22/><text x=%2222%22 y=%2228%22 text-anchor=%22middle%22 fill=%22%235a5a70%22 font-size=%2218%22>?</text></svg>'"/>
+        <div class="status-dot ${statusClass}"></div>
+      </div>
+      <div class="acc-info">
+        <div class="acc-name">${esc(acc.username)}</div>
+        <div class="acc-display">${esc(acc.displayName)}</div>
+        <div class="acc-status">
+          <span class="status-badge ${badgeClass}">${statusLabel}</span>
+          ${acc.managed ? '<span class="status-badge sb-managed">⚙ Managed</span>' : ''}
+        </div>
+      </div>
+    </div>
+    ${acc.gameName ? `<div class="acc-game">🎮 <span>${esc(acc.gameName)}</span></div>` : ''}
+    <div class="acc-actions">
+      <button class="btn btn-green btn-sm" onclick="event.stopPropagation();openJoinModal(${acc.id})">▶ Join</button>
+      ${acc.managed
+        ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();leaveGame(${acc.id})">⏹ Stop</button>`
+        : ''}
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();removeAccount(${acc.id})">✕ Kill</button>
+    </div>
+  </div>`;
+}
+
+function detailPanel(acc) {
+  const statusLabel = ['Offline','Online','In-Game','In Studio'][acc.status] || 'Unknown';
+  const badgeClass = ['sb-offline','sb-online','sb-ingame','sb-studio'][acc.status] || 'sb-offline';
+  const avatar = acc.avatar || `https://www.roblox.com/headshot-thumbnail/image?userId=${acc.id}&width=150&height=150&format=png`;
+  const lastSeen = new Date(acc.lastSeen).toLocaleTimeString();
+
+  return `<div class="detail-panel">
+    <div class="detail-top">
+      <div class="detail-avatar">
+        <img src="${avatar}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22><rect width=%2264%22 height=%2264%22 fill=%22%2318181f%22/></svg>'"/>
+      </div>
+      <div>
+        <div class="detail-name">${esc(acc.username)}</div>
+        <div class="detail-id">ID: ${acc.id}</div>
+        <div class="detail-badges">
+          <span class="status-badge ${badgeClass}">${statusLabel}</span>
+          ${acc.managed ? '<span class="status-badge sb-managed">⚙ Managed</span>' : ''}
+          ${acc.gameName ? `<span class="status-badge sb-ingame">🎮 ${esc(acc.gameName)}</span>` : ''}
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button class="btn btn-green btn-sm" onclick="openJoinModal(${acc.id})">▶ Join Game</button>
+        ${acc.managed ? `<button class="btn btn-ghost btn-sm" onclick="leaveGame(${acc.id})">⏹ Stop</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="removeAccount(${acc.id})">✕ Remove</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Activity Log · Last updated ${lastSeen}</div>
+      <div class="log-list" id="log-list-${acc.id}">
+        <div style="color:var(--text3);font-size:12px;padding:8px">Loading logs…</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function loadLogs(accountId) {
+  try {
+    const res = await fetch(`${API}/api/accounts/${accountId}/logs`);
+    const data = await res.json();
+    const el = document.getElementById(`log-list-${accountId}`);
+    if (!el) return;
+    if (!data.logs || data.logs.length === 0) {
+      el.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px">No activity yet.</div>`;
+      return;
+    }
+    el.innerHTML = data.logs.map(l => `
+      <div class="log-item log-${l.type}">
+        <span class="log-time">${new Date(l.time).toLocaleTimeString()}</span>
+        <span class="log-msg">${esc(l.message)}</span>
+      </div>`).join('');
+  } catch {}
+}
+
+// ── ACTIVITY VIEW ──
+function renderActivity() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = `
+    <div class="section-header">
+      <span class="section-title">Live Activity</span>
+      <span class="section-sub">All account logs</span>
+    </div>`;
+
+  if (accounts.length === 0) {
+    main.innerHTML += `<div class="empty-state"><div class="icon">📡</div><div class="title">No accounts</div></div>`;
+    return;
+  }
+
+  accounts.forEach(acc => {
+    const el = document.createElement('div');
+    el.className = 'detail-panel';
+    el.style.cursor = 'default';
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="${acc.avatar || ''}" width="32" height="32" style="border-radius:50%;border:1px solid var(--border)"
+          onerror="this.style.display='none'"/>
+        <span style="font-weight:600">${esc(acc.username)}</span>
+        <span class="status-badge ${['sb-offline','sb-online','sb-ingame','sb-studio'][acc.status] || 'sb-offline'}">${['Offline','Online','In-Game','In Studio'][acc.status]}</span>
+      </div>
+      <div class="log-list" id="act-log-${acc.id}"><div style="color:var(--text3);font-size:12px;padding:4px">Loading…</div></div>`;
+    main.appendChild(el);
+    loadLogsTo(acc.id, `act-log-${acc.id}`);
+  });
+}
+
+async function loadLogsTo(accountId, elId) {
+  try {
+    const res = await fetch(`${API}/api/accounts/${accountId}/logs`);
+    const data = await res.json();
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!data.logs || data.logs.length === 0) {
+      el.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:4px">No activity.</div>`;
+      return;
+    }
+    el.innerHTML = data.logs.slice(0,10).map(l => `
+      <div class="log-item log-${l.type}">
+        <span class="log-time">${new Date(l.time).toLocaleTimeString()}</span>
+        <span class="log-msg">${esc(l.message)}</span>
+      </div>`).join('');
+  } catch {}
+}
+
+// ── SELECT ──
+function selectAccount(id) {
+  selectedId = selectedId === id ? null : id;
+  renderView();
+}
+
+// ── ADD ACCOUNT ──
+function openAddModal() {
+  document.getElementById('add-modal').classList.add('open');
+  document.getElementById('cookie-input').value = '';
+  document.getElementById('add-error').classList.remove('show');
+}
+function closeAddModal() {
+  document.getElementById('add-modal').classList.remove('open');
+}
+
+async function addAccount() {
+  const cookie = document.getElementById('cookie-input').value.trim();
+  if (!cookie) return showAddError('Paste the .ROBLOSECURITY cookie.');
+
+  const btn = document.getElementById('add-btn');
+  const btnText = document.getElementById('add-btn-text');
+  btn.disabled = true;
+  btnText.innerHTML = '<div class="spinner"></div> Verifying…';
+
+  try {
+    const res = await fetch(`${API}/api/accounts/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookie }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAddModal();
+      toast(`Added ${data.account.username}`, 'success');
+      await fetchAccounts();
+    } else {
+      showAddError(data.error || 'Failed to add account.');
+    }
+  } catch {
+    showAddError('Server error. Is the backend running?');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Add Account';
+  }
+}
+
+function showAddError(msg) {
+  const el = document.getElementById('add-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+// ── JOIN ──
+function openJoinModal(accountId) {
+  joinTargetId = accountId;
+  document.getElementById('join-modal').classList.add('open');
+  document.getElementById('placeid-input').value = '';
+  document.getElementById('join-error').classList.remove('show');
+}
+function closeJoinModal() {
+  document.getElementById('join-modal').classList.remove('open');
+  joinTargetId = null;
+}
+
+async function confirmJoin() {
+  const placeId = document.getElementById('placeid-input').value.trim();
+  if (!placeId || isNaN(placeId)) return showJoinError('Enter a valid Place ID.');
+
+  const btn = document.getElementById('join-btn');
+  btn.disabled = true;
+  btn.textContent = 'Joining…';
+
+  try {
+    const res = await fetch(`${API}/api/games/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: joinTargetId, placeId: parseInt(placeId) }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeJoinModal();
+      toast('Join request sent', 'success');
+      await fetchAccounts();
+    } else {
+      showJoinError(data.error || 'Join failed.');
+    }
+  } catch {
+    showJoinError('Server error.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Join Game';
+  }
+}
+
+function showJoinError(msg) {
+  const el = document.getElementById('join-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+// ── LEAVE ──
+async function leaveGame(accountId) {
+  try {
+    await fetch(`${API}/api/games/leave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId }),
+    });
+    toast('Session stopped', 'success');
+    await fetchAccounts();
+  } catch {
+    toast('Failed to stop session', 'error');
+  }
+}
+
+// ── REMOVE ──
+async function removeAccount(accountId) {
+  const acc = accounts.find(a => a.id === accountId);
+  if (!confirm(`Remove ${acc?.username}?`)) return;
+  try {
+    await fetch(`${API}/api/accounts/${accountId}`, { method: 'DELETE' });
+    if (selectedId === accountId) selectedId = null;
+    toast(`Removed ${acc?.username}`, 'success');
+    await fetchAccounts();
+  } catch {
+    toast('Remove failed', 'error');
+  }
+}
+
+// ── TOAST ──
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── UTILS ──
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── CLOSE MODAL ON OVERLAY CLICK ──
+document.getElementById('add-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAddModal(); });
+document.getElementById('join-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeJoinModal(); });
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
